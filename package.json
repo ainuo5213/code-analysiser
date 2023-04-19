@@ -1,0 +1,32 @@
+{
+  "name": "code-analysiser",
+  "version": "0.0.0",
+  "description": "",
+  "keywords": [],
+  "files": [
+    "dist"
+  ],
+  "author": "ainuo <1660998482@qq.com>",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=6.0.0"
+  },
+  "scripts": {
+    "start": "ts-node src/index.ts"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.11",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "glob": "^10.2.1"
+  }
+}
