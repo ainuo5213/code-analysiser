@@ -1,3 +1,6 @@
-history()
+import { test as App } from 'framework'
+
+App.test
+App.test1()
 history.go(-1)
-window.history.go(-1)
+const t: App = null

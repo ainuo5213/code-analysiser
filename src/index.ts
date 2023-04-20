@@ -24,6 +24,8 @@ import {
 } from './types'
 import methodPlugin from './plugin/methodCheck'
 import browserApiCheck from './plugin/broserApiCheck'
+import propertyAccessCheck from './plugin/propertyAccessCheck'
+import typeReferenceCheck from './plugin/typeReferenceCheck'
 
 export default class CodeAnalysiser implements CodeAnalysiserInstance {
   public importApiPlugins: Plugin[] = []
@@ -47,12 +49,29 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     ])
   }
 
-  addDiagnosisInfo(diagnosisInfo: DiagnosisInfo) {
+  get analysisResult() {
+    const importApiPlugins = this.importApiPlugins
+    const browserApiPlugins = this.browserApiPlugins
+    const browserApiAnalysisResult: Record<string, any> = {}
+    const importApiAnalysisResult: Record<string, any> = {}
+    browserApiPlugins.forEach((r) => {
+      browserApiAnalysisResult[r.mapName] = (this as any)[r.mapName]
+    })
+    importApiPlugins.forEach((r) => {
+      importApiAnalysisResult[r.mapName] = (this as any)[r.mapName]
+    })
+    return {
+      ...importApiAnalysisResult,
+      ...browserApiAnalysisResult,
+    }
+  }
+
+  public addDiagnosisInfo(diagnosisInfo: DiagnosisInfo) {
     // TODO: addDiagnosisInfo
     console.log(diagnosisInfo)
   }
 
-  _installBrowserApis(browserApis: string[]) {
+  private _installBrowserApis(browserApis: string[]) {
     if (browserApis.length > 0) {
       browserApis.forEach((r) => {
         this.browserApis.push(r)
@@ -60,7 +79,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  _runImportPlugins(
+  private _runImportPlugins(
     tsCompiler: typeof ts,
     baseNode: Node,
     depth: number,
@@ -93,7 +112,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  _runBrowserApiPlugins(
+  private _runBrowserApiPlugins(
     tsCompiler: typeof ts,
     baseNode: Node,
     depth: number,
@@ -125,7 +144,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  _runImportPluginsHook(
+  private _runImportPluginsHook(
     importDeclarations: Map<string, RecordDeclaration>,
     ast: SourceFile,
     checker: TypeChecker,
@@ -166,7 +185,9 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
         this.importApiPlugins.push(r)
       })
     }
+    this.importApiPlugins.push(typeReferenceCheck(this))
     this.importApiPlugins.push(methodPlugin(this))
+    this.importApiPlugins.push(propertyAccessCheck(this))
   }
 
   private _scanFiles(source: SourceConfig[]) {
@@ -370,6 +391,5 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
   }
 }
 
-const codeAnalysiser = new CodeAnalysiser() as any
-console.log(codeAnalysiser.methodMap)
-console.log(codeAnalysiser.browserMap)
+const codeAnalysiser = new CodeAnalysiser()
+console.log(codeAnalysiser.analysisResult)
