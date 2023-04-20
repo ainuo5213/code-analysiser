@@ -8,7 +8,7 @@ export default function getImportDeclarations(
   libs: string[]
 ) {
   if (tsCompiler.isImportDeclaration(node)) {
-    if (libs.includes(node.moduleSpecifier.getText())) {
+    if (!libs.map((r) => '' + r + '').includes(node.moduleSpecifier.getText().slice(1, -1))) {
       return
     }
     if (!node.importClause) {
@@ -23,7 +23,7 @@ export default function getImportDeclarations(
         symbolEnd: node.importClause.end,
         identitiferPos: node.importClause.name.pos,
         identitiferEnd: node.importClause.name.end,
-        line
+        line,
       })
     }
     // import * as XXX from 'yyy' or import { xxx as XXX } from 'yyy' or import { xxx } from 'yyy'
@@ -34,7 +34,7 @@ export default function getImportDeclarations(
         node.importClause.namedBindings.elements.length > 0
       ) {
         const importElements = node.importClause.namedBindings.elements
-        importElements.forEach(r => {
+        importElements.forEach((r) => {
           if (tsCompiler.isImportSpecifier(r)) {
             write({
               name: r.name.escapedText.toString(),
@@ -43,7 +43,7 @@ export default function getImportDeclarations(
               symbolEnd: r.end,
               identitiferPos: r.name.pos,
               identitiferEnd: r.end,
-              line
+              line,
             })
           }
         })
@@ -61,7 +61,7 @@ export default function getImportDeclarations(
           symbolEnd: node.importClause.namedBindings.end,
           identitiferPos: node.importClause.namedBindings.name.pos,
           identitiferEnd: node.importClause.namedBindings.end,
-          line
+          line,
         })
       }
     }

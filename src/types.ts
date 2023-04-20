@@ -87,3 +87,5 @@ export interface CodeAnalysiserInstance {
   browserApis: string[]
   addDiagnosisInfo: (diagnosisInfo: DiagnosisInfo) => void
 }
+
+export type ScanFileType = 'vue' | 'ts' | 'tsx'

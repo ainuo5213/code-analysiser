@@ -10,7 +10,7 @@ import ts, {
   TypeChecker,
 } from 'typescript'
 import getImportDeclarations from './import'
-import parse from './parse'
+import { parseTs, parseVue } from './parse'
 import scan from './scan'
 import traverse from './traverse'
 import {
@@ -21,32 +21,49 @@ import {
   ScanResult,
   CodeAnalysiserInstance,
   DiagnosisInfo,
+  ScanFileType,
 } from './types'
 import methodPlugin from './plugin/methodCheck'
 import browserApiCheck from './plugin/broserApiCheck'
 import propertyAccessCheck from './plugin/propertyAccessCheck'
 import typeReferenceCheck from './plugin/typeReferenceCheck'
+import { extname, join } from 'path'
+import { VUE_TEMP_TS_DIR } from './constant'
+import { ensureDirSync, existsSync, removeSync } from 'fs-extra'
+import { mergeMap } from './map'
 
 export default class CodeAnalysiser implements CodeAnalysiserInstance {
   public importApiPlugins: Plugin[] = []
   public browserApis: string[] = []
   public browserApiPlugins: Plugin[] = []
+  private _extension: ScanFileType[] = []
   constructor() {
     // TODO: 配置和插件应从构造器的参数传入
 
     // 安装插件
+    this._extension = ['vue', 'ts']
+    if (this._extension.includes('vue')) {
+      this._ensureVueTempDir()
+    }
     this._installBrowserApis(['history', 'window'])
     this._installImportPlugins([])
     this._installBrowserApiPlugins([])
 
     // 扫描代码
-    this._scanCode([
-      {
-        path: ['src/__test__'],
-        name: 'test',
-        libs: ['framework'],
-      },
-    ])
+    this._scanCode(
+      [
+        {
+          path: ['src/__test__'],
+          name: 'test',
+          libs: ['framework'],
+        },
+      ],
+      this._extension
+    )
+
+    if (this._extension.includes('vue')) {
+      this._removeVueTempDir()
+    }
   }
 
   get analysisResult() {
@@ -69,6 +86,19 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
   public addDiagnosisInfo(diagnosisInfo: DiagnosisInfo) {
     // TODO: addDiagnosisInfo
     console.log(diagnosisInfo)
+  }
+
+  private _removeVueTempDir() {
+    const dir = join(process.cwd(), VUE_TEMP_TS_DIR)
+    if (existsSync(dir)) {
+      removeSync(dir)
+    }
+  }
+
+  private _ensureVueTempDir() {
+    this._removeVueTempDir()
+    const dir = join(process.cwd(), VUE_TEMP_TS_DIR)
+    ensureDirSync(dir)
   }
 
   private _installBrowserApis(browserApis: string[]) {
@@ -190,7 +220,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     this.importApiPlugins.push(propertyAccessCheck(this))
   }
 
-  private _scanFiles(source: SourceConfig[]) {
+  private _scanFiles(source: SourceConfig[], type: ScanFileType[]) {
     const entries: ScanResult[] = []
     source.forEach((r) => {
       const entry: ScanResult = {
@@ -201,7 +231,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
       }
       const parsed: string[] = []
       r.path.forEach((p) => {
-        let _entry = scan(p)
+        let _entry = scan(p, type)
         parsed.push(..._entry)
       })
       entry.parse = parsed
@@ -210,9 +240,9 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     return entries
   }
 
-  private _scanCode(source: SourceConfig[]) {
+  private _scanCode(source: SourceConfig[], type: ScanFileType[]) {
     // 根据提供的path扫描出文件列表
-    const entryFiles = this._scanFiles(source)
+    const entryFiles = this._scanFiles(source, type)
 
     entryFiles.forEach((r) => {
       const entryFile = r
@@ -223,18 +253,36 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
       }
       parsedFiles.forEach((filename) => {
         // 解析文件内容得到ast和类型检查器checker
-        const { ast, checker } = parse(filename)
-        if (!ast) {
-          return
+        const extension = extname(filename).slice(1) as ScanFileType
+        if (extension === 'vue' && type.includes('vue')) {
+          const parsedResult = parseVue(filename)
+          parsedResult.forEach((r) => {
+            this._analysisAst(r.ast, filename, entryFile, r.checker)
+          })
+        } else if (type.includes(extension)) {
+          const { ast, checker } = parseTs(filename)
+          this._analysisAst(ast, filename, entryFile, checker)
         }
-
-        // step1. 找到符合lib下的导入声明
-        const importDeclarations = this._findImportDeclarations(ast, filename, entryFile)
-
-        // step2. 找到调用的位置并记录
-        this._findCallInfo(importDeclarations, ast, checker, entryFile, filename)
       })
     })
+  }
+
+  private _analysisAst(
+    ast: SourceFile | undefined,
+    filename: string,
+    entryFile: ScanResult,
+    checker: TypeChecker,
+    baseLine: number = 0
+  ) {
+    if (!ast) {
+      return
+    }
+
+    // step1. 找到符合lib下的导入声明
+    const importDeclarations = this._findImportDeclarations(ast, filename, entryFile, baseLine)
+
+    // step2. 找到调用的位置并记录
+    this._findCallInfo(importDeclarations, ast, checker, entryFile, filename)
   }
 
   private _findImportDeclarations(
