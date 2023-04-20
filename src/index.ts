@@ -257,7 +257,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
         if (extension === 'vue' && type.includes('vue')) {
           const parsedResult = parseVue(filename)
           parsedResult.forEach((r) => {
-            this._analysisAst(r.ast, filename, entryFile, r.checker)
+            this._analysisAst(r.ast, filename, entryFile, r.checker, r.baseLine)
           })
         } else if (type.includes(extension)) {
           const { ast, checker } = parseTs(filename)
