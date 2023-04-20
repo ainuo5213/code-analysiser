@@ -1,4 +1,3 @@
-import { loader, app } from 'framework'
-
-loader('user')
-app.localStorage.set('store', 'iceman')
+history()
+history.go(-1)
+window.history.go(-1)

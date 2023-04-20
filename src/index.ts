@@ -23,14 +23,19 @@ import {
   DiagnosisInfo,
 } from './types'
 import methodPlugin from './plugin/methodCheck'
+import browserApiCheck from './plugin/broserApiCheck'
 
 export default class CodeAnalysiser implements CodeAnalysiserInstance {
-  public plugins: Plugin[] = []
+  public importApiPlugins: Plugin[] = []
+  public browserApis: string[] = []
+  public browserApiPlugins: Plugin[] = []
   constructor() {
     // TODO: 配置和插件应从构造器的参数传入
 
     // 安装插件
-    this._installPlugins([])
+    this._installBrowserApis(['history', 'window'])
+    this._installImportPlugins([])
+    this._installBrowserApiPlugins([])
 
     // 扫描代码
     this._scanCode([
@@ -47,7 +52,15 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     console.log(diagnosisInfo)
   }
 
-  _runPlugins(
+  _installBrowserApis(browserApis: string[]) {
+    if (browserApis.length > 0) {
+      browserApis.forEach((r) => {
+        this.browserApis.push(r)
+      })
+    }
+  }
+
+  _runImportPlugins(
     tsCompiler: typeof ts,
     baseNode: Node,
     depth: number,
@@ -58,9 +71,9 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     repositoryUrl: string,
     line: number
   ) {
-    if (this.plugins.length > 0) {
-      for (let i = 0; i < this.plugins.length; i++) {
-        const checkFun = this.plugins[i].check
+    if (this.importApiPlugins.length > 0) {
+      for (let i = 0; i < this.importApiPlugins.length; i++) {
+        const checkFun = this.importApiPlugins[i].check
         if (
           checkFun(
             tsCompiler,
@@ -80,7 +93,39 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  _runPluginsHook(
+  _runBrowserApiPlugins(
+    tsCompiler: typeof ts,
+    baseNode: Node,
+    depth: number,
+    apiName: string,
+    filePath: string,
+    projectName: string,
+    repositoryUrl: string,
+    line: number
+  ) {
+    if (this.browserApiPlugins.length > 0) {
+      for (let i = 0; i < this.browserApiPlugins.length; i++) {
+        const checkFun = this.browserApiPlugins[i].check
+        if (
+          checkFun(
+            tsCompiler,
+            baseNode,
+            depth,
+            apiName,
+            null,
+            filePath,
+            projectName,
+            repositoryUrl,
+            line
+          )
+        ) {
+          break
+        }
+      }
+    }
+  }
+
+  _runImportPluginsHook(
     importDeclarations: Map<string, RecordDeclaration>,
     ast: SourceFile,
     checker: TypeChecker,
@@ -89,13 +134,13 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     reponsitoryUrl: string,
     baseLine: number
   ) {
-    if (this.plugins.length > 0) {
-      for (let i = 0; i < this.plugins.length; i++) {
-        const afterHook = this.plugins[i].afterHook
+    if (this.importApiPlugins.length > 0) {
+      for (let i = 0; i < this.importApiPlugins.length; i++) {
+        const afterHook = this.importApiPlugins[i].afterHook
         if (afterHook && typeof afterHook === 'function') {
           afterHook(
             this,
-            this.plugins[i].mapName,
+            this.importApiPlugins[i].mapName,
             importDeclarations,
             ast,
             checker,
@@ -109,13 +154,19 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  private _installPlugins(plugins: Plugin[]) {
+  private _installBrowserApiPlugins(plugins: Plugin[]) {
+    if (this.browserApis.length > 0) {
+      this.browserApiPlugins.push(browserApiCheck(this))
+    }
+  }
+
+  private _installImportPlugins(plugins: Plugin[]) {
     if (plugins.length > 0) {
       plugins.forEach((r) => {
-        this.plugins.push(r)
+        this.importApiPlugins.push(r)
       })
     }
-    this.plugins.push(methodPlugin(this))
+    this.importApiPlugins.push(methodPlugin(this))
   }
 
   private _scanFiles(source: SourceConfig[]) {
@@ -123,7 +174,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     source.forEach((r) => {
       const entry: ScanResult = {
         name: r.name,
-        reponsitoryUrl: r.reponsitoryUrl,
+        reponsitoryUrl: r.reponsitoryUrl || '',
         parse: [],
         libs: r.libs,
       }
@@ -193,17 +244,11 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     filename: string,
     baseLine = 0
   ) {
-    const importDeclarationKeys = Array.from(importDeclarationMap.keys())
-
-    if (importDeclarationKeys.length === 0) {
-      return
-    }
-
     traverse(ast, (node) => {
       const line = ast.getLineAndCharacterOfPosition(node.getStart()).line + baseLine + 1
-      this._getCallInfo(node, importDeclarationMap, checker, filename, entryFile, line)
+      this._getCallInfo(ast, node, importDeclarationMap, checker, filename, entryFile, line)
     })
-    this._runPluginsHook(
+    this._runImportPluginsHook(
       importDeclarationMap,
       ast,
       checker,
@@ -215,6 +260,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
   }
 
   private _getCallInfo(
+    ast: SourceFile,
     node: Node,
     declarationMap: Map<string, RecordDeclaration>,
     checker: TypeChecker,
@@ -242,7 +288,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
             if (node.parent) {
               const { baseNode, depth, apiName } = this._getAccessProperty(node)
               // 调用分析的插件
-              this._runPlugins(
+              this._runImportPlugins(
                 ts,
                 baseNode,
                 depth,
@@ -261,6 +307,39 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
           }
         } else {
           // 没有declaration关联，则代表是同名的变量，不予采集
+        }
+      }
+    } else if (
+      isIdentifier(node) &&
+      node.escapedText &&
+      this.browserApis.includes(node.escapedText)
+    ) {
+      // 处理browser api的调用。如果该引用的声明大于当前字符串长度，则说明是browser api
+      const symbol = checker.getSymbolAtLocation(node)
+      if (symbol?.declarations?.length) {
+        const currentDeclaration = symbol.declarations[0]
+        if (currentDeclaration.pos > ast.end) {
+          const { baseNode, apiName, depth } = this._getAccessProperty(node)
+          // 排除window.xxx的影响，使window.xxx和xxx分开计算
+          if (
+            !(
+              depth > 0 &&
+              node.parent &&
+              (node.parent as PropertyAccessExpression).name.pos == node.pos &&
+              (node.parent as PropertyAccessExpression).name.end == node.end
+            )
+          ) {
+            this._runBrowserApiPlugins(
+              ts,
+              baseNode,
+              depth,
+              apiName,
+              filePath,
+              entryFile.name,
+              entryFile.reponsitoryUrl || '',
+              line
+            )
+          }
         }
       }
     }
@@ -293,3 +372,4 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
 
 const codeAnalysiser = new CodeAnalysiser() as any
 console.log(codeAnalysiser.methodMap)
+console.log(codeAnalysiser.browserMap)

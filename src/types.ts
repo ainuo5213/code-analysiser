@@ -39,7 +39,7 @@ export type SourceConfig = {
 export type ScanResult = {
   name: string
   parse: string[]
-  reponsitoryUrl?: string
+  reponsitoryUrl: string
   libs: string[]
 }
 export type Plugin = {
@@ -48,7 +48,7 @@ export type Plugin = {
     baseNode: Node,
     depth: number,
     apiName: string,
-    matchImportDeclaration: RecordDeclaration,
+    matchImportDeclaration: RecordDeclaration | null,
     filePath: string,
     projectName: string,
     repositoryUrl: string,
@@ -72,7 +72,7 @@ export type Plugin = {
 
 export type DiagnosisInfo = {
   projectName: string
-  matchImportDeclaration: RecordDeclaration
+  matchImportDeclaration?: RecordDeclaration
   apiName: string
   repositoryUrl: string
   file: string
@@ -82,6 +82,8 @@ export type DiagnosisInfo = {
 
 export interface CodeAnalysiserInstance {
   [K: string]: any
-  plugins: Plugin[]
+  importApiPlugins: Plugin[]
+  browserApiPlugins: Plugin[]
+  browserApis: string[]
   addDiagnosisInfo: (diagnosisInfo: DiagnosisInfo) => void
 }
