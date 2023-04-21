@@ -8,14 +8,16 @@ export default function (context: CodeAnalysiserInstance) {
   let score = 100
   let messages: string[] = []
   if (mapNames.length > 0) {
-    mapNames.forEach((item) => {
-      Object.keys(context.analysisResult[item]).forEach((sitem) => {
-        if (context[item][sitem].isBlack) {
-          score -= 5
-          messages.push(sitem + ' 属于黑名单api，请勿使用')
-        }
+    mapNames
+      .filter((r) => ['methodMap', 'classMap'].includes(r))
+      .forEach((item) => {
+        Object.keys(context.analysisResult[item]).forEach((sitem) => {
+          if (context.analysisResult[item][sitem].isBlack) {
+            score -= 5
+            messages.push(sitem + ' 属于黑名单api，请勿使用')
+          }
+        })
       })
-    })
   }
   for (const r of importDeclarationMap.values()) {
     r.forEach((p) => {
@@ -25,8 +27,9 @@ export default function (context: CodeAnalysiserInstance) {
       }
     })
   }
+
   if (mapNames.includes('browserMap')) {
-    Object.keys(context['browserMap']).forEach((item) => {
+    Object.keys(context.analysisResult['browserMap']).forEach((item) => {
       let keyName = ''
       if (item.split('.').length > 0) {
         keyName = item.split('.')[0]
@@ -47,6 +50,12 @@ export default function (context: CodeAnalysiserInstance) {
         score = score - 2
         messages.push(item + ' 属于路由类操作，请使用框架提供的Router API代替')
       }
+    })
+  }
+  if (mapNames.includes('apiChangeMap')) {
+    Object.keys(context.analysisResult['apiChangeMap']).forEach((item) => {
+      score -= 5
+      messages.push(item + ' 被修改，请谨慎对待')
     })
   }
 

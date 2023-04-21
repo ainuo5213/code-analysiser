@@ -1,6 +1,5 @@
-import { test as App } from 'framework'
+import * as App from 'framework'
 
-App.test
-App.test1()
-history.go(-1)
-const t: App = null
+App.test = function () {
+  console.log(1)
+}

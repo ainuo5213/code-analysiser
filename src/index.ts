@@ -25,6 +25,7 @@ import {
   ScorePlugin,
   ScoreResult,
   CodeAnalysiserConfig,
+  PluginGenerator,
 } from './types'
 import methodPlugin from './plugin/methodCheck'
 import browserApiCheck from './plugin/broserApiCheck'
@@ -34,6 +35,8 @@ import { extname, join } from 'path'
 import { VUE_TEMP_TS_DIR } from './constant'
 import { ensureDirSync, existsSync, removeSync } from 'fs-extra'
 import score from './plugin/score'
+import classCheck from './plugin/classCheck'
+import apiChangeCheck from './plugin/apiChangeCheck'
 
 export default class CodeAnalysiser implements CodeAnalysiserInstance {
   public importApiPlugins: Plugin[] = []
@@ -215,16 +218,21 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  private _installBrowserApiPlugins(plugins: Plugin[]) {
+  private _installBrowserApiPlugins(plugins: PluginGenerator[]) {
+    if (plugins.length > 0) {
+      plugins.forEach((r) => {
+        this.browserApiPlugins.push(r(this))
+      })
+    }
     if (this.browserApis.length > 0) {
       this.browserApiPlugins.push(browserApiCheck(this))
     }
   }
 
-  private _installImportPlugins(plugins: Plugin[]) {
+  private _installImportPlugins(plugins: PluginGenerator[]) {
     if (plugins.length > 0) {
       plugins.forEach((r) => {
-        this.importApiPlugins.push(r)
+        this.importApiPlugins.push(r(this))
       })
     }
     this.importApiPlugins.push(typeReferenceCheck(this))
@@ -469,6 +477,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
 const codeAnalysiser = new CodeAnalysiser({
   extensions: ['ts', 'tsx', 'vue'],
   blackApis: ['App'],
+  importApiPlugins: [classCheck, apiChangeCheck],
   entry: [
     {
       path: ['src/__test__'],

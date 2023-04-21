@@ -90,12 +90,14 @@ export type DiagnosisInfo = {
   stack?: string
 }
 
+export type PluginGenerator = (context: CodeAnalysiserInstance) => Plugin
+
 export type CodeAnalysiserConfig = {
   extensions?: ScanFileType[]
   blackApis?: string[]
   browserApis?: string[]
-  browserApiPlugins?: Plugin[]
-  importApiPlugins?: Plugin[]
+  browserApiPlugins?: PluginGenerator[]
+  importApiPlugins?: PluginGenerator[]
   entry: SourceConfig[]
   scorePlugin?: ScorePlugin
 }
