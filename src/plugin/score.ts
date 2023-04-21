@@ -17,14 +17,14 @@ export default function (context: CodeAnalysiserInstance) {
       })
     })
   }
-  Object.values(importDeclarationMap).forEach((r: RecordDeclaration[]) => {
-    r.forEach((r) => {
-      if (r.origin === '*') {
+  for (const r of importDeclarationMap.values()) {
+    r.forEach((p) => {
+      if (p.origin === '*') {
         score = score - 2
-        messages.push('import * as ' + r.name + ' 属于非建议导入方式，建议修改')
+        messages.push('import * as ' + p.name + ' 属于非建议导入方式，建议修改')
       }
     })
-  })
+  }
   if (mapNames.includes('browserMap')) {
     Object.keys(context['browserMap']).forEach((item) => {
       let keyName = ''

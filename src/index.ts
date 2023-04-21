@@ -24,6 +24,7 @@ import {
   ScanFileType,
   ScorePlugin,
   ScoreResult,
+  CodeAnalysiserConfig,
 } from './types'
 import methodPlugin from './plugin/methodCheck'
 import browserApiCheck from './plugin/broserApiCheck'
@@ -47,32 +48,22 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
   private _extension: ScanFileType[] = []
   private _blackApiList: string[] = []
   private _scorePlugin: ScorePlugin = score
-  constructor() {
+  constructor(config: CodeAnalysiserConfig) {
     // TODO: 配置和插件应从构造器的参数传入
 
     // 安装插件
-    this._extension = ['vue', 'ts']
-    this._blackApiList = ['App']
+    this._extension = config.extensions || ['tsx', 'ts']
+    this._blackApiList = config.blackApis || []
     if (this._extension.includes('vue')) {
       this._ensureVueTempDir()
     }
-    this._installBrowserApis(['history', 'window'])
-    this._installImportPlugins([])
-    this._installBrowserApiPlugins([])
-    // this._scorePlugin =
+    this.browserApis = config.browserApis || []
+    this._installImportPlugins(config.importApiPlugins || [])
+    this._installBrowserApiPlugins(config.browserApiPlugins || [])
+    this._scorePlugin = config.scorePlugin || score
 
     // 扫描代码
-    this._scanCode(
-      [
-        {
-          path: ['src/__test__'],
-          name: 'test',
-          libs: ['framework'],
-        },
-      ],
-      this._extension
-    )
-
+    this._scanCode(config.entry, this._extension)
     if (this._extension.includes('vue')) {
       this._removeVueTempDir()
     }
@@ -80,7 +71,6 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     this._blackTag(this.importApiPlugins)
     this._blackTag(this.browserApiPlugins)
     this.scoreResult = this._scorePlugin(this)
-    console.log(this.scoreResult)
   }
 
   get analysisResult() {
@@ -129,14 +119,6 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     this._removeVueTempDir()
     const dir = join(process.cwd(), VUE_TEMP_TS_DIR)
     ensureDirSync(dir)
-  }
-
-  private _installBrowserApis(browserApis: string[]) {
-    if (browserApis.length > 0) {
-      browserApis.forEach((r) => {
-        this.browserApis.push(r)
-      })
-    }
   }
 
   private _runImportPlugins(
@@ -484,4 +466,16 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
   }
 }
 
-const codeAnalysiser = new CodeAnalysiser()
+const codeAnalysiser = new CodeAnalysiser({
+  extensions: ['ts', 'tsx', 'vue'],
+  blackApis: ['App'],
+  entry: [
+    {
+      path: ['src/__test__'],
+      libs: ['framework'],
+      name: 'test',
+    },
+  ],
+})
+
+console.log(codeAnalysiser.scoreResult)

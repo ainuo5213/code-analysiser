@@ -1,4 +1,5 @@
 import ts, { Node, SourceFile, TypeChecker } from 'typescript'
+import CodeAnalysiser from '.'
 
 export type RecordDeclaration = {
   name: string
@@ -88,6 +89,18 @@ export type DiagnosisInfo = {
   line: number
   stack?: string
 }
+
+export type CodeAnalysiserConfig = {
+  extensions?: ScanFileType[]
+  blackApis?: string[]
+  browserApis?: string[]
+  browserApiPlugins?: Plugin[]
+  importApiPlugins?: Plugin[]
+  entry: SourceConfig[]
+  scorePlugin?: ScorePlugin
+}
+
+export type CodeAnalysiserConstructor = new (config: CodeAnalysiserConfig) => CodeAnalysiserInstance
 
 export interface CodeAnalysiserInstance {
   [K: string]: any
