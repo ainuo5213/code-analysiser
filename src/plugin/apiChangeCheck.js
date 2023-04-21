@@ -16,9 +16,6 @@ export default function (context) {
       let parentNode = node.parent
       let hasChanged = false
       while (parentNode) {
-        if (parentNode.pos === parentNode.parent.pos && parentNode.end === parentNode.parent.end) {
-          break
-        }
         if (tsCompiler.isBinaryExpression(parentNode)) {
           if (parentNode.operatorToken.getText() === '=') {
             hasChanged = true
