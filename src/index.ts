@@ -22,6 +22,8 @@ import {
   CodeAnalysiserInstance,
   DiagnosisInfo,
   ScanFileType,
+  ScorePlugin,
+  ScoreResult,
 } from './types'
 import methodPlugin from './plugin/methodCheck'
 import browserApiCheck from './plugin/broserApiCheck'
@@ -30,24 +32,34 @@ import typeReferenceCheck from './plugin/typeReferenceCheck'
 import { extname, join } from 'path'
 import { VUE_TEMP_TS_DIR } from './constant'
 import { ensureDirSync, existsSync, removeSync } from 'fs-extra'
-import { mergeMap } from './map'
+import score from './plugin/score'
 
 export default class CodeAnalysiser implements CodeAnalysiserInstance {
   public importApiPlugins: Plugin[] = []
   public browserApis: string[] = []
   public browserApiPlugins: Plugin[] = []
+  public parseErrorInfo: DiagnosisInfo[] = []
+  public importDeclarationMap: Map<string, Array<RecordDeclaration>> = new Map() // 以类库为key统计每个类库下引用某些api的情况统计
+  public scoreResult: ScoreResult = {
+    messages: [],
+    score: 0,
+  }
   private _extension: ScanFileType[] = []
+  private _blackApiList: string[] = []
+  private _scorePlugin: ScorePlugin = score
   constructor() {
     // TODO: 配置和插件应从构造器的参数传入
 
     // 安装插件
     this._extension = ['vue', 'ts']
+    this._blackApiList = ['App']
     if (this._extension.includes('vue')) {
       this._ensureVueTempDir()
     }
     this._installBrowserApis(['history', 'window'])
     this._installImportPlugins([])
     this._installBrowserApiPlugins([])
+    // this._scorePlugin =
 
     // 扫描代码
     this._scanCode(
@@ -64,6 +76,11 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     if (this._extension.includes('vue')) {
       this._removeVueTempDir()
     }
+
+    this._blackTag(this.importApiPlugins)
+    this._blackTag(this.browserApiPlugins)
+    this.scoreResult = this._scorePlugin(this)
+    console.log(this.scoreResult)
   }
 
   get analysisResult() {
@@ -84,8 +101,21 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
   }
 
   public addDiagnosisInfo(diagnosisInfo: DiagnosisInfo) {
-    // TODO: addDiagnosisInfo
-    console.log(diagnosisInfo)
+    this.parseErrorInfo.push(diagnosisInfo)
+  }
+
+  private _blackTag(plugins: Plugin[]) {
+    const analysisResult = this.analysisResult
+    if (plugins.length > 0) {
+      plugins.forEach((item) => {
+        Object.keys(analysisResult[item.mapName]).forEach((apiName) => {
+          // 遍历相关插件属性Map
+          if (this._blackApiList.includes(apiName)) {
+            analysisResult[item.mapName][apiName].isBlack = true
+          }
+        })
+      })
+    }
   }
 
   private _removeVueTempDir() {
@@ -292,14 +322,29 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     baseLine = 0
   ) {
     const importDeclartions = new Map<string, RecordDeclaration>()
+    const _this = this
     function _writeImportDeclaration(importDeclation: RecordDeclaration) {
+      if (!_this.importDeclarationMap.has(importDeclation.fromLib)) {
+        _this.importDeclarationMap.set(importDeclation.fromLib, [
+          {
+            ...importDeclation,
+          },
+        ])
+      } else {
+        const importDeclartionArr = _this.importDeclarationMap.get(importDeclation.fromLib)!
+        importDeclartionArr.push({
+          ...importDeclation,
+        })
+        _this.importDeclarationMap.set(importDeclation.fromLib, importDeclartionArr)
+      }
+
       importDeclartions.set(importDeclation.name, {
         ...importDeclation,
       })
     }
     traverse(ast, (node) => {
       const line = ast.getLineAndCharacterOfPosition(node.getStart()).line + baseLine + 1
-      getImportDeclarations(node, _writeImportDeclaration, line, entry.libs)
+      getImportDeclarations(node, _writeImportDeclaration, line, entry.libs, filePath)
     })
 
     return importDeclartions
@@ -440,4 +485,3 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
 }
 
 const codeAnalysiser = new CodeAnalysiser()
-console.log(codeAnalysiser.analysisResult)

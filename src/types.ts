@@ -1,5 +1,4 @@
 import ts, { Node, SourceFile, TypeChecker } from 'typescript'
-import CodeAnalysiser from '.'
 
 export type RecordDeclaration = {
   name: string
@@ -9,6 +8,8 @@ export type RecordDeclaration = {
   identitiferPos: number
   identitiferEnd: number
   line: number
+  fromLib: string
+  filePath: string
 }
 
 export type AccessPropertyResult = {
@@ -42,6 +43,14 @@ export type ScanResult = {
   reponsitoryUrl: string
   libs: string[]
 }
+
+export type ScoreResult = {
+  messages: string[]
+  score: number
+}
+
+export type ScorePlugin = (context: CodeAnalysiserInstance) => ScoreResult
+
 export type Plugin = {
   check: (
     tsCompiler: typeof ts,
@@ -57,7 +66,7 @@ export type Plugin = {
   mapName: string
   afterHook:
     | ((
-        instance: CodeAnalysiser,
+        instance: CodeAnalysiserInstance,
         mapName: string,
         importDeclarations: Map<string, RecordDeclaration>,
         ast: SourceFile,
@@ -85,7 +94,11 @@ export interface CodeAnalysiserInstance {
   importApiPlugins: Plugin[]
   browserApiPlugins: Plugin[]
   browserApis: string[]
+  analysisResult: Record<string, any>
   addDiagnosisInfo: (diagnosisInfo: DiagnosisInfo) => void
+  parseErrorInfo: DiagnosisInfo[]
+  importDeclarationMap: Map<string, Array<RecordDeclaration>>
+  scoreResult: ScoreResult
 }
 
 export type ScanFileType = 'vue' | 'ts' | 'tsx'
