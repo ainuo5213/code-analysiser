@@ -52,8 +52,6 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
   private _blackApiList: string[] = []
   private _scorePlugin: ScorePlugin = score
   constructor(config: CodeAnalysiserConfig) {
-    // TODO: 配置和插件应从构造器的参数传入
-
     // 安装插件
     this._extension = config.extensions || ['tsx', 'ts']
     this._blackApiList = config.blackApis || []

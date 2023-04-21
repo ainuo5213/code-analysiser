@@ -54,9 +54,25 @@ export default function (context: CodeAnalysiserInstance) {
       return false
     }
   }
+  function propertyAccessScore() {
+    let score = 0
+    let messages: string[] = []
+
+    Object.keys(context.analysisResult[mapName]).forEach((sitem) => {
+      if (context.analysisResult[mapName][sitem].isBlack) {
+        score -= 5
+        messages.push(sitem + ' 属于黑名单api，请勿使用')
+      }
+    })
+    return {
+      score,
+      messages,
+    }
+  }
   return {
     mapName: mapName,
     check: isPropertyAccessCheck,
+    score: propertyAccessScore,
     afterHook: null,
   } as Plugin
 }

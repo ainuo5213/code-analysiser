@@ -66,9 +66,23 @@ export default function (context: CodeAnalysiserInstance) {
       return false
     }
   }
+  function apiChangeScore() {
+    let score = 0
+    let messages: string[] = []
+
+    Object.keys(context.analysisResult[mapName]).forEach((sitem) => {
+      score -= 5
+      messages.push(sitem + ' 被修改，请谨慎对待')
+    })
+    return {
+      score,
+      messages,
+    }
+  }
   return {
     mapName: mapName,
     check: isApiChangedCheck,
+    score: apiChangeScore,
     afterHook: null,
   } as Plugin
 }

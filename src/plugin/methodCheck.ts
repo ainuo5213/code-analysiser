@@ -61,9 +61,25 @@ export default function (context: CodeAnalysiserInstance) {
       return false
     }
   }
+  function methodCallScore() {
+    let score = 0
+    let messages: string[] = []
+
+    Object.keys(context.analysisResult[mapName]).forEach((sitem) => {
+      if (context.analysisResult[mapName][sitem].isBlack) {
+        score -= 5
+        messages.push(sitem + ' 属于黑名单api，请勿使用')
+      }
+    })
+    return {
+      score,
+      messages,
+    }
+  }
   return {
     mapName: mapName,
     check: isMethodCheck,
+    score: methodCallScore,
     afterHook: null,
   } as Plugin
 }

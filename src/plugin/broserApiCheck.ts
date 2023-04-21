@@ -53,9 +53,41 @@ export default function (context: CodeAnalysiserInstance) {
       return false
     }
   }
+  function browserApiScore() {
+    const messages: string[] = []
+    let score = 0
+    Object.keys(context.analysisResult[mapName]).forEach((item) => {
+      let keyName = ''
+      if (item.split('.').length > 0) {
+        keyName = item.split('.')[0]
+      } else {
+        keyName = item
+      }
+      if (keyName === 'window') {
+        messages.push(item + ' 属于全局类型api，建议请评估影响慎重使用')
+      }
+      if (keyName === 'document') {
+        messages.push(item + ' 属于Dom类型操作api，建议评估影响慎重使用')
+      }
+      if (keyName === 'history') {
+        score = score - 2
+        messages.push(item + ' 属于路由类操作，请使用框架提供的Router API代替')
+      }
+      if (keyName === 'location') {
+        score = score - 2
+        messages.push(item + ' 属于路由类操作，请使用框架提供的Router API代替')
+      }
+    })
+
+    return {
+      score,
+      messages,
+    }
+  }
   return {
     mapName: mapName,
     check: isBrowserCheck,
+    score: browserApiScore,
     afterHook: null,
   } as Plugin
 }

@@ -6,7 +6,7 @@ export default function scan(scanPath: string, postfix = ['ts', 'tsx']) {
   const currentPath = process.cwd()
   const files: string[] = []
   postfix.forEach((r) => {
-    files.push(...globSync(join(currentPath, `${scanPath}/**/*.${r}`)))
+    files.push(...globSync(join(currentPath, `${scanPath}/**/*.${r}`).replace(/\\/g, '/')))
   })
   return files
 }

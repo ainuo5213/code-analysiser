@@ -65,6 +65,7 @@ export type Plugin = {
     line: number
   ) => boolean
   mapName: string
+  score: () => ScoreResult
   afterHook:
     | ((
         instance: CodeAnalysiserInstance,

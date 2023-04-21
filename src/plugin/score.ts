@@ -1,77 +1,37 @@
-import { CodeAnalysiserInstance, RecordDeclaration } from '../types'
+import { CodeAnalysiserInstance } from '../types'
 
 export default function (context: CodeAnalysiserInstance) {
   const { importApiPlugins, browserApiPlugins, parseErrorInfo, importDeclarationMap } = context
-  const mapNames = importApiPlugins
-    .map((r) => r.mapName)
-    .concat(browserApiPlugins.map((r) => r.mapName))
-  let score = 100
-  let messages: string[] = []
-  if (mapNames.length > 0) {
-    mapNames
-      .filter((r) => ['methodMap', 'classMap'].includes(r))
-      .forEach((item) => {
-        Object.keys(context.analysisResult[item]).forEach((sitem) => {
-          if (context.analysisResult[item][sitem].isBlack) {
-            score -= 5
-            messages.push(sitem + ' 属于黑名单api，请勿使用')
-          }
-        })
-      })
-  }
+  let totalScore = 100
+  let totalMessages: string[] = []
   for (const r of importDeclarationMap.values()) {
     r.forEach((p) => {
       if (p.origin === '*') {
-        score = score - 2
-        messages.push('import * as ' + p.name + ' 属于非建议导入方式，建议修改')
+        totalScore = totalScore - 2
+        totalMessages.push('import * as ' + p.name + ' 属于非建议导入方式，建议修改')
       }
-    })
-  }
-
-  if (mapNames.includes('browserMap')) {
-    Object.keys(context.analysisResult['browserMap']).forEach((item) => {
-      let keyName = ''
-      if (item.split('.').length > 0) {
-        keyName = item.split('.')[0]
-      } else {
-        keyName = item
-      }
-      if (keyName === 'window') {
-        messages.push(item + ' 属于全局类型api，建议请评估影响慎重使用')
-      }
-      if (keyName === 'document') {
-        messages.push(item + ' 属于Dom类型操作api，建议评估影响慎重使用')
-      }
-      if (keyName === 'history') {
-        score = score - 2
-        messages.push(item + ' 属于路由类操作，请使用框架提供的Router API代替')
-      }
-      if (keyName === 'location') {
-        score = score - 2
-        messages.push(item + ' 属于路由类操作，请使用框架提供的Router API代替')
-      }
-    })
-  }
-  if (mapNames.includes('apiChangeMap')) {
-    Object.keys(context.analysisResult['apiChangeMap']).forEach((item) => {
-      score -= 5
-      messages.push(item + ' 被修改，请谨慎对待')
     })
   }
 
   if (parseErrorInfo.length > 0) {
-    score = score - 3 * parseErrorInfo.length
+    totalScore = totalScore - 3 * parseErrorInfo.length
     let tempMessage = ''
     tempMessage = parseErrorInfo.length + ' 个文件解析&分析AST时发生错误，请修复'
-    messages.push(tempMessage)
+    totalMessages.push(tempMessage)
   }
 
-  if (score < 0) {
-    score = 0
+  importApiPlugins.concat(browserApiPlugins).forEach((r) => {
+    const { messages, score } = r.score()
+    totalScore -= score
+    totalMessages.push(...messages)
+  })
+
+  if (totalScore < 0) {
+    totalScore = 0
   }
 
   return {
-    score,
-    messages,
+    score: totalScore,
+    messages: totalMessages,
   }
 }
