@@ -1,16 +1,16 @@
 import { globSync } from 'glob'
 import { join } from 'path'
-import { readFileSync } from 'fs-extra'
+import fse from 'fs-extra'
 
-export default function scan(scanPath: string, postfix = ['ts', 'tsx']) {
+export default function scan(scanPath, postfix = ['ts', 'tsx']) {
   const currentPath = process.cwd()
-  const files: string[] = []
+  const files = []
   postfix.forEach((r) => {
     files.push(...globSync(join(currentPath, `${scanPath}/**/*.${r}`).replace(/\\/g, '/')))
   })
   return files
 }
 
-export function getCode(filename: string) {
+export function getCode(filename) {
   return readFileSync(filename, 'utf-8')
 }

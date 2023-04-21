@@ -1,20 +1,17 @@
-import ts, { Node } from 'typescript'
-import { CodeAnalysiserInstance, DiagnosisInfo, Plugin, RecordDeclaration } from '../types'
-
-export default function (context: CodeAnalysiserInstance) {
+export default function (context) {
   const mapName = 'typeReferenceMap'
   context[mapName] = {}
   function isTypeReferenceCheck(
-    tsCompiler: typeof ts,
-    node: Node,
-    depth: number,
-    apiName: string,
-    matchImportDeclaration: RecordDeclaration,
-    filePath: string,
-    projectName: string,
-    repositoryUrl: string,
-    line: number
-  ): boolean {
+    tsCompiler,
+    node,
+    depth,
+    apiName,
+    matchImportDeclaration,
+    filePath,
+    projectName,
+    repositoryUrl,
+    line
+  ) {
     try {
       if (node.parent && tsCompiler.isTypeReferenceNode(node.parent)) {
         // 命中函数名method检测
@@ -43,8 +40,8 @@ export default function (context: CodeAnalysiserInstance) {
         return true // true: 命中规则, 终止执行后序插件
       }
       return false
-    } catch (e: unknown) {
-      const error = e as Error
+    } catch (e) {
+      const error = e
       const info = {
         projectName: projectName,
         matchImportDeclaration: matchImportDeclaration,
@@ -53,14 +50,14 @@ export default function (context: CodeAnalysiserInstance) {
         file: filePath.split('&')[1],
         line: line,
         stack: error.stack,
-      } as DiagnosisInfo
+      }
       context.addDiagnosisInfo(info)
       return false
     }
   }
   function typeReferenceScore() {
     let score = 0
-    let messages: string[] = []
+    let messages = []
 
     Object.keys(context.analysisResult[mapName]).forEach((sitem) => {
       if (context.analysisResult[mapName][sitem].isBlack) {
@@ -78,5 +75,5 @@ export default function (context: CodeAnalysiserInstance) {
     check: isTypeReferenceCheck,
     score: typeReferenceScore,
     afterHook: null,
-  } as Plugin
+  }
 }

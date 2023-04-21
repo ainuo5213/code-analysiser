@@ -1,57 +1,33 @@
-// Import here Polyfills if needed. Recommended core-js (npm i -D core-js)
-// import "core-js/fn/array.find"
-import ts, {
-  Identifier,
-  isIdentifier,
-  isPropertyAccessExpression,
-  Node,
-  PropertyAccessExpression,
-  SourceFile,
-  TypeChecker,
-} from 'typescript'
-import getImportDeclarations from './import'
-import { parseTs, parseVue } from './parse'
-import scan from './scan'
-import traverse from './traverse'
-import {
-  AccessPropertyResult,
-  RecordDeclaration,
-  SourceConfig,
-  Plugin,
-  ScanResult,
-  CodeAnalysiserInstance,
-  DiagnosisInfo,
-  ScanFileType,
-  ScorePlugin,
-  ScoreResult,
-  CodeAnalysiserConfig,
-  PluginGenerator,
-} from './types'
-import methodPlugin from './plugin/methodCheck'
-import browserApiCheck from './plugin/broserApiCheck'
-import propertyAccessCheck from './plugin/propertyAccessCheck'
-import typeReferenceCheck from './plugin/typeReferenceCheck'
+import ts from 'typescript'
+import getImportDeclarations from './import.js'
+import { parseTs, parseVue } from './parse.js'
+import scan from './scan.js'
+import traverse from './traverse.js'
+import methodPlugin from './plugin/methodCheck.js'
+import browserApiCheck from './plugin/broserApiCheck.js'
+import propertyAccessCheck from './plugin/propertyAccessCheck.js'
+import typeReferenceCheck from './plugin/typeReferenceCheck.js'
 import { extname, join } from 'path'
-import { VUE_TEMP_TS_DIR } from './constant'
-import { ensureDirSync, existsSync, removeSync } from 'fs-extra'
-import score from './plugin/score'
-import classCheck from './plugin/classCheck'
-import apiChangeCheck from './plugin/apiChangeCheck'
+import { VUE_TEMP_TS_DIR } from './constant.js'
+import fse from 'fs-extra'
+import score from './plugin/score.js'
+import classCheck from './plugin/classCheck.js'
+import apiChangeCheck from './plugin/apiChangeCheck.js'
 
-export default class CodeAnalysiser implements CodeAnalysiserInstance {
-  public importApiPlugins: Plugin[] = []
-  public browserApis: string[] = []
-  public browserApiPlugins: Plugin[] = []
-  public parseErrorInfo: DiagnosisInfo[] = []
-  public importDeclarationMap: Map<string, Array<RecordDeclaration>> = new Map() // 以类库为key统计每个类库下引用某些api的情况统计
-  public scoreResult: ScoreResult = {
+export default class CodeAnalysiser {
+  importApiPlugins = []
+  browserApis = []
+  browserApiPlugins = []
+  parseErrorInfo = []
+  importDeclarationMap = new Map() // 以类库为key统计每个类库下引用某些api的情况统计
+  scoreResult = {
     messages: [],
     score: 0,
   }
-  private _extension: ScanFileType[] = []
-  private _blackApiList: string[] = []
-  private _scorePlugin: ScorePlugin = score
-  constructor(config: CodeAnalysiserConfig) {
+  _extension = []
+  _blackApiList = []
+  _scorePlugin = score
+  constructor(config) {
     // 安装插件
     this._extension = config.extensions || ['tsx', 'ts']
     this._blackApiList = config.blackApis || []
@@ -77,13 +53,13 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
   get analysisResult() {
     const importApiPlugins = this.importApiPlugins
     const browserApiPlugins = this.browserApiPlugins
-    const browserApiAnalysisResult: Record<string, any> = {}
-    const importApiAnalysisResult: Record<string, any> = {}
+    const browserApiAnalysisResult = {}
+    const importApiAnalysisResult = {}
     browserApiPlugins.forEach((r) => {
-      browserApiAnalysisResult[r.mapName] = (this as any)[r.mapName]
+      browserApiAnalysisResult[r.mapName] = this[r.mapName]
     })
     importApiPlugins.forEach((r) => {
-      importApiAnalysisResult[r.mapName] = (this as any)[r.mapName]
+      importApiAnalysisResult[r.mapName] = this[r.mapName]
     })
     return {
       ...importApiAnalysisResult,
@@ -91,11 +67,11 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  public addDiagnosisInfo(diagnosisInfo: DiagnosisInfo) {
+  addDiagnosisInfo(diagnosisInfo) {
     this.parseErrorInfo.push(diagnosisInfo)
   }
 
-  private _blackTag(plugins: Plugin[]) {
+  _blackTag(plugins) {
     const analysisResult = this.analysisResult
     if (plugins.length > 0) {
       plugins.forEach((item) => {
@@ -109,29 +85,29 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  private _removeVueTempDir() {
+  _removeVueTempDir() {
     const dir = join(process.cwd(), VUE_TEMP_TS_DIR)
-    if (existsSync(dir)) {
-      removeSync(dir)
+    if (fse.removeSync(dir)) {
+      fse.removeSync(dir)
     }
   }
 
-  private _ensureVueTempDir() {
+  _ensureVueTempDir() {
     this._removeVueTempDir()
     const dir = join(process.cwd(), VUE_TEMP_TS_DIR)
-    ensureDirSync(dir)
+    fse.ensureDirSync(dir)
   }
 
-  private _runImportPlugins(
-    tsCompiler: typeof ts,
-    baseNode: Node,
-    depth: number,
-    apiName: string,
-    matchImportDeclaration: RecordDeclaration,
-    filePath: string,
-    projectName: string,
-    repositoryUrl: string,
-    line: number
+  _runImportPlugins(
+    tsCompiler,
+    baseNode,
+    depth,
+    apiName,
+    matchImportDeclaration,
+    filePath,
+    projectName,
+    repositoryUrl,
+    line
   ) {
     if (this.importApiPlugins.length > 0) {
       for (let i = 0; i < this.importApiPlugins.length; i++) {
@@ -155,15 +131,15 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  private _runBrowserApiPlugins(
-    tsCompiler: typeof ts,
-    baseNode: Node,
-    depth: number,
-    apiName: string,
-    filePath: string,
-    projectName: string,
-    repositoryUrl: string,
-    line: number
+  _runBrowserApiPlugins(
+    tsCompiler,
+    baseNode,
+    depth,
+    apiName,
+    filePath,
+    projectName,
+    repositoryUrl,
+    line
   ) {
     if (this.browserApiPlugins.length > 0) {
       for (let i = 0; i < this.browserApiPlugins.length; i++) {
@@ -187,14 +163,14 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  private _runImportPluginsHook(
-    importDeclarations: Map<string, RecordDeclaration>,
-    ast: SourceFile,
-    checker: TypeChecker,
-    filePath: string,
-    projectName: string,
-    reponsitoryUrl: string,
-    baseLine: number
+  _runImportPluginsHook(
+    importDeclarations,
+    ast,
+    checker,
+    filePath,
+    projectName,
+    reponsitoryUrl,
+    baseLine
   ) {
     if (this.importApiPlugins.length > 0) {
       for (let i = 0; i < this.importApiPlugins.length; i++) {
@@ -216,7 +192,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  private _installBrowserApiPlugins(plugins: PluginGenerator[]) {
+  _installBrowserApiPlugins(plugins) {
     if (plugins.length > 0) {
       plugins.forEach((r) => {
         this.browserApiPlugins.push(r(this))
@@ -227,7 +203,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  private _installImportPlugins(plugins: PluginGenerator[]) {
+  _installImportPlugins(plugins) {
     if (plugins.length > 0) {
       plugins.forEach((r) => {
         this.importApiPlugins.push(r(this))
@@ -240,16 +216,16 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     this.importApiPlugins.push(propertyAccessCheck(this))
   }
 
-  private _scanFiles(source: SourceConfig[], type: ScanFileType[]) {
-    const entries: ScanResult[] = []
+  _scanFiles(source, type) {
+    const entries = []
     source.forEach((r) => {
-      const entry: ScanResult = {
+      const entry = {
         name: r.name,
         reponsitoryUrl: r.reponsitoryUrl || '',
         parse: [],
         libs: r.libs,
       }
-      const parsed: string[] = []
+      const parsed = []
       r.path.forEach((p) => {
         let _entry = scan(p, type)
         parsed.push(..._entry)
@@ -260,9 +236,10 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     return entries
   }
 
-  private _scanCode(source: SourceConfig[], type: ScanFileType[]) {
+  _scanCode(source, type) {
     // 根据提供的path扫描出文件列表
     const entryFiles = this._scanFiles(source, type)
+    console.log(entryFiles)
 
     entryFiles.forEach((r) => {
       const entryFile = r
@@ -273,7 +250,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
       }
       parsedFiles.forEach((filename) => {
         // 解析文件内容得到ast和类型检查器checker
-        const extension = extname(filename).slice(1) as ScanFileType
+        const extension = extname(filename).slice(1)
         if (extension === 'vue' && type.includes('vue')) {
           const parsedResult = parseVue(filename)
           parsedResult.forEach((r) => {
@@ -287,13 +264,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     })
   }
 
-  private _analysisAst(
-    ast: SourceFile | undefined,
-    filename: string,
-    entryFile: ScanResult,
-    checker: TypeChecker,
-    baseLine: number = 0
-  ) {
+  _analysisAst(ast, filename, entryFile, checker, baseLine = 0) {
     if (!ast) {
       return
     }
@@ -305,15 +276,10 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     this._findCallInfo(importDeclarations, ast, checker, entryFile, filename)
   }
 
-  private _findImportDeclarations(
-    ast: SourceFile,
-    filePath: string,
-    entry: ScanResult,
-    baseLine = 0
-  ) {
-    const importDeclartions = new Map<string, RecordDeclaration>()
+  _findImportDeclarations(ast, filePath, entry, baseLine = 0) {
+    const importDeclartions = new Map()
     const _this = this
-    function _writeImportDeclaration(importDeclation: RecordDeclaration) {
+    function _writeImportDeclaration(importDeclation) {
       if (!_this.importDeclarationMap.has(importDeclation.fromLib)) {
         _this.importDeclarationMap.set(importDeclation.fromLib, [
           {
@@ -321,7 +287,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
           },
         ])
       } else {
-        const importDeclartionArr = _this.importDeclarationMap.get(importDeclation.fromLib)!
+        const importDeclartionArr = _this.importDeclarationMap.get(importDeclation.fromLib)
         importDeclartionArr.push({
           ...importDeclation,
         })
@@ -340,14 +306,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     return importDeclartions
   }
 
-  private _findCallInfo(
-    importDeclarationMap: Map<string, RecordDeclaration>,
-    ast: SourceFile,
-    checker: TypeChecker,
-    entryFile: ScanResult,
-    filename: string,
-    baseLine = 0
-  ) {
+  _findCallInfo(importDeclarationMap, ast, checker, entryFile, filename, baseLine = 0) {
     traverse(ast, (node) => {
       const line = ast.getLineAndCharacterOfPosition(node.getStart()).line + baseLine + 1
       this._getCallInfo(ast, node, importDeclarationMap, checker, filename, entryFile, line)
@@ -363,18 +322,10 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     )
   }
 
-  private _getCallInfo(
-    ast: SourceFile,
-    node: Node,
-    declarationMap: Map<string, RecordDeclaration>,
-    checker: TypeChecker,
-    filePath: string,
-    entryFile: ScanResult,
-    line: number
-  ) {
+  _getCallInfo(ast, node, declarationMap, checker, filePath, entryFile, line) {
     const declarationKeys = Array.from(declarationMap.keys())
-    if (isIdentifier(node) && node.escapedText && declarationKeys.includes(node.escapedText)) {
-      const currentApiDeclarataion = declarationMap.get(node.escapedText)!
+    if (ts.isIdentifier(node) && node.escapedText && declarationKeys.includes(node.escapedText)) {
+      const currentApiDeclarataion = declarationMap.get(node.escapedText)
       // 排除import节点的干扰
       if (
         node.pos !== currentApiDeclarataion.identitiferPos &&
@@ -414,7 +365,7 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
         }
       }
     } else if (
-      isIdentifier(node) &&
+      ts.isIdentifier(node) &&
       node.escapedText &&
       this.browserApis.includes(node.escapedText)
     ) {
@@ -429,8 +380,8 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
             !(
               depth > 0 &&
               node.parent &&
-              (node.parent as PropertyAccessExpression).name.pos == node.pos &&
-              (node.parent as PropertyAccessExpression).name.end == node.end
+              node.parent.name.pos == node.pos &&
+              node.parent.name.end == node.end
             )
           ) {
             this._runBrowserApiPlugins(
@@ -449,19 +400,15 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 
-  private _getAccessProperty(
-    node: Identifier | PropertyAccessExpression,
-    index = 0,
-    apiName = ''
-  ): AccessPropertyResult {
+  _getAccessProperty(node, index = 0, apiName = '') {
     if (index > 0) {
       // 如果是xx.xx.xx这种情况，要一直持续到他不是一个propertyAccessExpression为止，这样需要拼接apiName
-      apiName = apiName + '.' + (node as PropertyAccessExpression).name.escapedText
+      apiName = apiName + '.' + node.name.escapedText
     } else {
-      apiName = apiName + (node as Identifier).escapedText
+      apiName = apiName + node.escapedText
     }
     // 如果是链式访问调用的话，则需要查找到其调用链顶
-    if (isPropertyAccessExpression(node.parent)) {
+    if (ts.isPropertyAccessExpression(node.parent)) {
       index++
       return this._getAccessProperty(node.parent, index, apiName)
     } else {

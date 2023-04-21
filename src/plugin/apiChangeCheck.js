@@ -1,24 +1,21 @@
-import ts, { Node } from 'typescript'
-import { CodeAnalysiserInstance, DiagnosisInfo, Plugin, RecordDeclaration } from '../types'
-
-export default function (context: CodeAnalysiserInstance) {
+export default function (context) {
   const mapName = 'apiChangeMap'
   context[mapName] = {}
   function isApiChangedCheck(
-    tsCompiler: typeof ts,
-    node: Node,
-    depth: number,
-    apiName: string,
-    matchImportDeclaration: RecordDeclaration,
-    filePath: string,
-    projectName: string,
-    repositoryUrl: string,
-    line: number
-  ): boolean {
+    tsCompiler,
+    node,
+    depth,
+    apiName,
+    matchImportDeclaration,
+    filePath,
+    projectName,
+    repositoryUrl,
+    line
+  ) {
     try {
       let parentNode = node.parent
       let hasChanged = false
-      while (parentNode) {
+      while (parentNode.pos !== parentNode.parent.pos && parentNode.end !== parentNode.parent.end) {
         if (tsCompiler.isPropertyAccessExpression(parentNode)) {
           parentNode = parentNode.parent
         } else if (tsCompiler.isBinaryExpression(parentNode)) {
@@ -51,8 +48,8 @@ export default function (context: CodeAnalysiserInstance) {
         }
       }
       return true // true: 命中规则, 终止执行后序插件
-    } catch (e: unknown) {
-      const error = e as Error
+    } catch (e) {
+      const error = e
       const info = {
         projectName: projectName,
         matchImportDeclaration: matchImportDeclaration,
@@ -61,14 +58,14 @@ export default function (context: CodeAnalysiserInstance) {
         file: filePath.split('&')[1],
         line: line,
         stack: error.stack,
-      } as DiagnosisInfo
+      }
       context.addDiagnosisInfo(info)
       return false
     }
   }
   function apiChangeScore() {
     let score = 0
-    let messages: string[] = []
+    let messages = []
 
     Object.keys(context.analysisResult[mapName]).forEach((sitem) => {
       score -= 5
@@ -84,5 +81,5 @@ export default function (context: CodeAnalysiserInstance) {
     check: isApiChangedCheck,
     score: apiChangeScore,
     afterHook: null,
-  } as Plugin
+  }
 }

@@ -1,9 +1,7 @@
-import { CodeAnalysiserInstance } from '../types'
-
-export default function (context: CodeAnalysiserInstance) {
+export default function (context) {
   const { importApiPlugins, browserApiPlugins, parseErrorInfo, importDeclarationMap } = context
   let totalScore = 100
-  let totalMessages: string[] = []
+  let totalMessages = []
   for (const r of importDeclarationMap.values()) {
     r.forEach((p) => {
       if (p.origin === '*') {

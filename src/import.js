@@ -1,13 +1,6 @@
-import tsCompiler, { StringLiteral } from 'typescript'
-import { RecordDeclaration } from './types'
+import tsCompiler from 'typescript'
 
-export default function getImportDeclarations(
-  node: tsCompiler.Node,
-  write: (importDeclation: RecordDeclaration) => void,
-  line: number,
-  libs: string[],
-  filePath: string
-) {
+export default function getImportDeclarations(node, write, line, libs, filePath) {
   if (tsCompiler.isImportDeclaration(node)) {
     if (!libs.map((r) => '' + r + '').includes(node.moduleSpecifier.getText().slice(1, -1))) {
       return
@@ -19,7 +12,7 @@ export default function getImportDeclarations(
     if (node.importClause.name) {
       write({
         name: node.importClause.name.escapedText.toString(),
-        fromLib: (node.moduleSpecifier as StringLiteral).text,
+        fromLib: node.moduleSpecifier.text,
         origin: null,
         symbolPos: node.importClause.pos,
         symbolEnd: node.importClause.end,
@@ -46,7 +39,7 @@ export default function getImportDeclarations(
               symbolEnd: r.end,
               identitiferPos: r.name.pos,
               identitiferEnd: r.end,
-              fromLib: (node.moduleSpecifier as StringLiteral).text,
+              fromLib: node.moduleSpecifier.text,
               line,
               filePath,
             })
@@ -66,7 +59,7 @@ export default function getImportDeclarations(
           symbolEnd: node.importClause.namedBindings.end,
           identitiferPos: node.importClause.namedBindings.name.pos,
           identitiferEnd: node.importClause.namedBindings.end,
-          fromLib: (node.moduleSpecifier as StringLiteral).text,
+          fromLib: node.moduleSpecifier.text,
           line,
           filePath,
         })

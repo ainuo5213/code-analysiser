@@ -1,20 +1,17 @@
-import ts, { Node } from 'typescript'
-import { CodeAnalysiserInstance, DiagnosisInfo, Plugin, RecordDeclaration } from '../types'
-
-export default function (context: CodeAnalysiserInstance) {
+export default function (context) {
   const mapName = 'browserMap'
   context[mapName] = {}
   function isBrowserCheck(
-    tsCompiler: typeof ts,
-    node: Node,
-    depth: number,
-    apiName: string,
-    matchImportDeclaration: RecordDeclaration,
-    filePath: string,
-    projectName: string,
-    repositoryUrl: string,
-    line: number
-  ): boolean {
+    tsCompiler,
+    node,
+    depth,
+    apiName,
+    matchImportDeclaration,
+    filePath,
+    projectName,
+    repositoryUrl,
+    line
+  ) {
     try {
       if (!context[mapName][apiName]) {
         context[mapName][apiName] = {}
@@ -39,8 +36,8 @@ export default function (context: CodeAnalysiserInstance) {
         }
       }
       return true
-    } catch (e: unknown) {
-      const error = e as Error
+    } catch (e) {
+      const error = e
       const info = {
         projectName: projectName,
         apiName: apiName,
@@ -54,7 +51,7 @@ export default function (context: CodeAnalysiserInstance) {
     }
   }
   function browserApiScore() {
-    const messages: string[] = []
+    const messages = []
     let score = 0
     Object.keys(context.analysisResult[mapName]).forEach((item) => {
       let keyName = ''
@@ -89,5 +86,5 @@ export default function (context: CodeAnalysiserInstance) {
     check: isBrowserCheck,
     score: browserApiScore,
     afterHook: null,
-  } as Plugin
+  }
 }

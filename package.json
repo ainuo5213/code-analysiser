@@ -3,13 +3,12 @@
   "version": "0.0.0",
   "description": "",
   "keywords": [],
-  "main": "dist/lib/index.js",
+  "main": "src/cli.js",
   "scripts": {
-    "start": "ts-node src/index.ts",
-    "build": "tsc"
+    "start": "ts-node src/index.ts"
   },
   "bin": {
-    "ana": "dist/lib/cli.js"
+    "ana": "src/cli.js"
   },
   "files": [
     "dist"
