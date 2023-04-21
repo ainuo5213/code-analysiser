@@ -15,39 +15,45 @@ export default function (context) {
     try {
       let parentNode = node.parent
       let hasChanged = false
-      while (parentNode.pos !== parentNode.parent.pos && parentNode.end !== parentNode.parent.end) {
-        if (tsCompiler.isPropertyAccessExpression(parentNode)) {
-          parentNode = parentNode.parent
-        } else if (tsCompiler.isBinaryExpression(parentNode)) {
+      while (parentNode) {
+        if (parentNode.pos === parentNode.parent.pos && parentNode.end === parentNode.parent.end) {
+          break
+        }
+        if (tsCompiler.isBinaryExpression(parentNode)) {
           if (parentNode.operatorToken.getText() === '=') {
             hasChanged = true
           }
           break
+        } else {
+          parentNode = parentNode.parent
         }
       }
       if (hasChanged) {
-        context[mapName][apiName] = {}
-        context[mapName][apiName].callNum = 1
-        context[mapName][apiName].callOrigin = matchImportDeclaration.origin
-        context[mapName][apiName].callFiles = {}
-        context[mapName][apiName].callFiles[filePath] = {}
-        context[mapName][apiName].callFiles[filePath].projectName = projectName
-        context[mapName][apiName].callFiles[filePath].repositoryUrl = repositoryUrl
-        context[mapName][apiName].callFiles[filePath].lines = []
-        context[mapName][apiName].callFiles[filePath].lines.push(line)
-      } else {
-        context[mapName][apiName].callNum++
-        if (!Object.keys(context[mapName][apiName].callFiles).includes(filePath)) {
+        if (!context[mapName][apiName]) {
+          context[mapName][apiName] = {}
+          context[mapName][apiName].callNum = 1
+          context[mapName][apiName].callOrigin = matchImportDeclaration.origin
+          context[mapName][apiName].callFiles = {}
           context[mapName][apiName].callFiles[filePath] = {}
           context[mapName][apiName].callFiles[filePath].projectName = projectName
           context[mapName][apiName].callFiles[filePath].repositoryUrl = repositoryUrl
           context[mapName][apiName].callFiles[filePath].lines = []
           context[mapName][apiName].callFiles[filePath].lines.push(line)
         } else {
-          context[mapName][apiName].callFiles[filePath].lines.push(line)
+          context[mapName][apiName].callNum++
+          if (!Object.keys(context[mapName][apiName].callFiles).includes(filePath)) {
+            context[mapName][apiName].callFiles[filePath] = {}
+            context[mapName][apiName].callFiles[filePath].projectName = projectName
+            context[mapName][apiName].callFiles[filePath].repositoryUrl = repositoryUrl
+            context[mapName][apiName].callFiles[filePath].lines = []
+            context[mapName][apiName].callFiles[filePath].lines.push(line)
+          } else {
+            context[mapName][apiName].callFiles[filePath].lines.push(line)
+          }
         }
+        return true // true: 命中规则, 终止执行后序插件
       }
-      return true // true: 命中规则, 终止执行后序插件
+      return false
     } catch (e) {
       const error = e
       const info = {

@@ -239,8 +239,6 @@ export default class CodeAnalysiser {
   _scanCode(source, type) {
     // 根据提供的path扫描出文件列表
     const entryFiles = this._scanFiles(source, type)
-    console.log(entryFiles)
-
     entryFiles.forEach((r) => {
       const entryFile = r
       const parsedFiles = entryFile.parse

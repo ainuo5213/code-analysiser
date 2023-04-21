@@ -29,8 +29,10 @@ yargs(hideBin(process.argv))
         chalk.red.bold('analysis.config.js缺少配置入口entry')
         return
       }
+      const spinner = ora('开始扫描项目文件').start()
       try {
         const codeAnalysiser = new CodeAnalysiser(config)
+        spinner.stop()
         console.log(chalk.green.bold('项目文件扫描完毕，开始生成扫描结果'))
         const score = codeAnalysiser.scoreResult.score
         console.log(chalk.red('代码得分：' + score))
@@ -39,6 +41,7 @@ yargs(hideBin(process.argv))
           console.log(chalk.yellow(index + 1 + '. ' + r))
         })
       } catch (e) {
+        spinner.stop()
         console.log(chalk.red(e.stack))
       }
     }

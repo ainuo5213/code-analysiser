@@ -10,7 +10,6 @@ export default function (context) {
       }
     })
   }
-
   if (parseErrorInfo.length > 0) {
     totalScore = totalScore - 3 * parseErrorInfo.length
     let tempMessage = ''
@@ -20,7 +19,7 @@ export default function (context) {
 
   importApiPlugins.concat(browserApiPlugins).forEach((r) => {
     const { messages, score } = r.score()
-    totalScore -= score
+    totalScore += score
     totalMessages.push(...messages)
   })
 
