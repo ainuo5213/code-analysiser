@@ -233,6 +233,8 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
         this.importApiPlugins.push(r(this))
       })
     }
+    this.importApiPlugins.push(classCheck(this))
+    this.importApiPlugins.push(apiChangeCheck(this))
     this.importApiPlugins.push(typeReferenceCheck(this))
     this.importApiPlugins.push(methodPlugin(this))
     this.importApiPlugins.push(propertyAccessCheck(this))
@@ -471,18 +473,3 @@ export default class CodeAnalysiser implements CodeAnalysiserInstance {
     }
   }
 }
-
-const codeAnalysiser = new CodeAnalysiser({
-  extensions: ['ts', 'tsx', 'vue'],
-  blackApis: ['App'],
-  importApiPlugins: [classCheck, apiChangeCheck],
-  entry: [
-    {
-      path: ['src/__test__'],
-      libs: ['framework'],
-      name: 'test',
-    },
-  ],
-})
-
-console.log(codeAnalysiser.scoreResult)

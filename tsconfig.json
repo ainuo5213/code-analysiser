@@ -12,8 +12,9 @@
     "emitDecoratorMetadata": true,
     "declarationDir": "dist/types",
     "outDir": "dist/lib",
-    "typeRoots": ["node_modules/@types"],
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["./src", "./package.json", "./tsconfig.json", "./tsconfig.node.json"],
+  "exclude": ["./src/__test__/*"]
 }

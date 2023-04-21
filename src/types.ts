@@ -1,5 +1,4 @@
 import ts, { Node, SourceFile, TypeChecker } from 'typescript'
-import CodeAnalysiser from '.'
 
 export type RecordDeclaration = {
   name: string
@@ -34,7 +33,6 @@ export type NodeCheckResult = {
 export type SourceConfig = {
   name: string
   path: string[]
-  package?: string
   reponsitoryUrl?: string
   libs: string[]
 }

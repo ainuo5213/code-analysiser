@@ -3,21 +3,23 @@
   "version": "0.0.0",
   "description": "",
   "keywords": [],
+  "main": "dist/lib/index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc"
+  },
+  "bin": {
+    "ana": "dist/lib/cli.js"
+  },
   "files": [
     "dist"
   ],
-  "author": "ainuo <1660998482@qq.com>",
+  "author": "ainuo5213 <1660998482@qq.com>",
   "repository": {
     "type": "git",
     "url": ""
   },
   "license": "MIT",
-  "engines": {
-    "node": ">=6.0.0"
-  },
-  "scripts": {
-    "start": "ts-node src/index.ts"
-  },
   "prettier": {
     "semi": false,
     "singleQuote": true
@@ -26,12 +28,17 @@
     "@types/fs-extra": "^11.0.1",
     "@types/md5": "^2.3.2",
     "@types/node": "^18.15.11",
-    "@vue/compiler-dom": "^3.2.47",
-    "typescript": "^5.0.4"
+    "@types/yargs": "^17.0.24"
   },
   "dependencies": {
+    "@vue/compiler-dom": "^3.2.47",
+    "chalk": "^5.2.0",
     "fs-extra": "^11.1.1",
     "glob": "^10.2.1",
-    "md5": "^2.3.0"
-  }
+    "md5": "^2.3.0",
+    "ora": "^6.3.0",
+    "typescript": "^5.0.4",
+    "yargs": "^17.7.1"
+  },
+  "type": "module"
 }
