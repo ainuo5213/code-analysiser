@@ -1,17 +1,20 @@
 {
-  "name": "code-analysiser",
-  "version": "0.0.0",
-  "description": "",
+  "name": "@ainuo-utils/code-analysiser",
+  "version": "0.0.2",
+  "description": "analysis code, black api using overview",
   "keywords": [],
   "main": "src/cli.js",
-  "scripts": {
-    "start": "ts-node src/index.ts"
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "bin": {
     "ana": "src/cli.js"
   },
   "files": [
-    "dist"
+    "src",
+    "package.json",
+    "README.md"
   ],
   "author": "ainuo5213 <1660998482@qq.com>",
   "repository": {

@@ -60,19 +60,19 @@ export default function (context) {
       } else {
         keyName = item
       }
-      if (keyName === 'window') {
-        messages.push(item + ' 属于全局类型api，建议请评估影响慎重使用')
-      }
-      if (keyName === 'document') {
-        messages.push(item + ' 属于Dom类型操作api，建议评估影响慎重使用')
-      }
-      if (keyName === 'history') {
+      if (keyName === 'window' && context.browserApis.includes(keyName)) {
+        messages.push(keyName + ' 属于全局类型api，建议请评估影响慎重使用')
+      } else if (keyName === 'document' && context.browserApis.includes(keyName)) {
+        messages.push(keyName + ' 属于Dom类型操作api，建议评估影响慎重使用')
+      } else if (keyName === 'history' && context.browserApis.includes(keyName)) {
         score = score - 2
-        messages.push(item + ' 属于路由类操作，请使用框架提供的Router API代替')
-      }
-      if (keyName === 'location') {
+        messages.push(keyName + ' 属于路由类操作，请使用框架提供的Router API代替')
+      } else if (keyName === 'location' && context.browserApis.includes(keyName)) {
         score = score - 2
-        messages.push(item + ' 属于路由类操作，请使用框架提供的Router API代替')
+        messages.push(keyName + ' 属于路由类操作，请使用框架提供的Router API代替')
+      } else if (context.browserApis.includes(keyName)) {
+        score = score - 2
+        messages.push(keyName + ' 属于被检测的全局API操作，请注意使用')
       }
     })
 
